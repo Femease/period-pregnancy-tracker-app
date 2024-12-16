@@ -1,0 +1,109 @@
+model WeeklyContent {
+  id           String          @id @default(cuid())
+  week         Int          @unique
+  babyGrowth   BabyGrowth?
+  motherGrowth MotherGrowth?
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  createdBy    String
+  isPublished  Boolean      @default(false)
+
+  @@index([week])
+  @@index([isPublished])
+  @@map("weekly_contents")
+}
+
+model BabyGrowth {
+  id               String              @id @default(cuid())
+  weeklyContentId  String              @unique @map("weekly_content_id")
+  weeklyContent    WeeklyContent    @relation(fields: [weeklyContentId], references: [id], onDelete: Cascade)
+  size            Size?
+  development     Development?
+  fruitComparison FruitComparison?
+
+  @@index([weeklyContentId])
+  @@map("baby_growths")
+}
+
+model Size {
+  id           String        @id @default(cuid())
+  babyGrowthId String        @unique @map("baby_growth_id")
+  babyGrowth   BabyGrowth @relation(fields: [babyGrowthId], references: [id], onDelete: Cascade)
+  length       Float
+  weight       Float
+
+  @@index([babyGrowthId])
+  @@map("sizes")
+}
+
+model Development {
+    id           String        @id @default(cuid())
+  babyGrowthId String        @unique @map("baby_growth_id")
+  babyGrowth   BabyGrowth @relation(fields: [babyGrowthId], references: [id], onDelete: Cascade)
+  title        String
+  description  String     @db.Text
+  milestones   String[]
+
+  @@index([babyGrowthId])
+  @@map("developments")
+}
+
+model FruitComparison {
+  id           String        @id @default(cuid())
+  babyGrowthId String        @unique @map("baby_growth_id")
+  babyGrowth   BabyGrowth @relation(fields: [babyGrowthId], references: [id], onDelete: Cascade)
+  name         String
+  size         String
+  imageUrl     String?
+
+  @@index([babyGrowthId])
+  @@map("fruit_comparisons")
+}
+
+model MotherGrowth {
+  id              String              @id @default(cuid())
+  weeklyContentId String              @unique @map("weekly_content_id")
+  weeklyContent   WeeklyContent    @relation(fields: [weeklyContentId], references: [id], onDelete: Cascade)
+  expectedChanges ExpectedChanges?
+  weightGain      WeightGain?
+  nutrition       Nutrition?
+
+  @@index([weeklyContentId])
+  @@map("mother_growths")
+}
+
+model ExpectedChanges {
+  id              String          @id @default(cuid())
+  motherGrowthId  String          @unique @map("mother_growth_id")
+  motherGrowth    MotherGrowth @relation(fields: [motherGrowthId], references: [id], onDelete: Cascade)
+  title           String
+  description     String       @db.Text
+  symptoms        String[]
+  recommendations String[]
+
+  @@index([motherGrowthId])
+  @@map("expected_changes")
+}
+
+model WeightGain {
+  id             String          @id @default(cuid())
+  motherGrowthId String          @unique @map("mother_growth_id")
+  motherGrowth   MotherGrowth @relation(fields: [motherGrowthId], references: [id], onDelete: Cascade)
+  min            Float
+  max            Float
+
+  @@index([motherGrowthId])
+  @@map("weight_gains")
+}
+
+model Nutrition {
+  id             String          @id @default(cuid())
+  motherGrowthId String          @unique @map("mother_growth_id")
+  motherGrowth   MotherGrowth @relation(fields: [motherGrowthId], references: [id], onDelete: Cascade)
+  requirements   String[]
+  foods          String[]
+  supplements    String[]
+
+  @@index([motherGrowthId])
+  @@map("nutritions")
+}

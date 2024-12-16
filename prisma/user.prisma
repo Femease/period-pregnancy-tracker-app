@@ -1,0 +1,17 @@
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  name            String
+  isAdmin         Boolean   @default(false)
+  age             Int?
+  bmi             Float?
+  resetToken      String?   // Add this field
+  resetTokenExpiry DateTime? // Add this field
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+    periodTracker   PeriodTracker? // Add this relation field
+
+
+  @@map("users")
+}

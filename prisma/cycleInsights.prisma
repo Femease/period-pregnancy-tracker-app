@@ -1,0 +1,60 @@
+model CycleInsights {
+  id                    String       @id @default(cuid())
+  currentDay            Int
+  phase                 String    // Enum can be handled in application logic
+  predictedNextPeriod   DateTime
+  dailyRecommendations  String[]
+  
+  moodPatterns          MoodPattern[]
+  energyLevels          EnergyLevel[]
+  cycleMetrics          CycleMetrics?
+
+  @@map("cycle_insights")
+}
+
+model MoodPattern {
+  id              String           @id @default(cuid())
+  cycleInsightsId String           @map("cycle_insights_id")
+  date            DateTime
+  mood            String
+  intensity       Int
+  cycleInsights   CycleInsights    @relation(fields: [cycleInsightsId], references: [id], onDelete: Cascade)
+
+  @@index([cycleInsightsId])
+  @@map("mood_patterns") 
+}
+
+model EnergyLevel {
+  id              String           @id @default(cuid())
+  cycleInsightsId String           @map("cycle_insights_id")
+  date            DateTime
+  level           Int
+  cycleInsights   CycleInsights    @relation(fields: [cycleInsightsId], references: [id], onDelete: Cascade)
+
+  @@index([cycleInsightsId])
+  @@map("energy_levels")
+}
+
+model CycleMetrics {
+  id                  String               @id @default(cuid())
+  cycleInsightsId     String              @unique @map("cycle_insights_id")
+  averageCycle        Float
+  regularity          String
+  significantChanges  SignificantChange[]
+  cycleInsights       CycleInsights       @relation(fields: [cycleInsightsId], references: [id], onDelete: Cascade)
+
+  @@index([cycleInsightsId])
+  @@map("cycle_metrics")
+}
+
+model SignificantChange {
+  id              String           @id @default(cuid())
+  cycleMetricsId  String           @map("cycle_metrics_id")
+  type            String
+  description     String
+  date            DateTime
+  cycleMetrics    CycleMetrics     @relation(fields: [cycleMetricsId], references: [id], onDelete: Cascade)
+
+  @@index([cycleMetricsId])
+  @@map("significant_changes")
+}

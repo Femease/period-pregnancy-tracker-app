@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String
+  name            String
+  isAdmin         Boolean   @default(false)
+  age             Int?
+  bmi             Float?
+  resetToken      String?   // Add this field
+  resetTokenExpiry DateTime? // Add this field
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+    periodTracker   PeriodTracker? // Add this relation field
+
+
+  @@map("users")
+}
+model PeriodTracker {
+  id        String       @id @default(cuid())
+  userId    String       @unique @map("user_id")
+  periods   Period[]
+  symptoms  Symptom[]
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("period_trackers")
+}
+
+model Period {
+  id             String           @id @default(cuid())
+  startDate      DateTime      @map("start_date")
+  endDate        DateTime?     @map("end_date")
+  cycleLength    Int?         @map("cycle_length") // Added this field
+  periodTrackerId String          @map("period_tracker_id")
+  periodTracker   PeriodTracker @relation(fields: [periodTrackerId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@index([periodTrackerId])
+  @@map("periods")
+}
+
+model Symptom {
+  id              String           @id @default(cuid())
+  type            String
+  severity        Int
+  notes           String?       @db.Text
+  timestamp       DateTime      @default(now())
+  periodTrackerId String          @map("period_tracker_id")
+  periodTracker   PeriodTracker @relation(fields: [periodTrackerId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@index([periodTrackerId])
+  @@map("symptoms")
+}
+model WeeklyContent {
+  id           String          @id @default(cuid())
+  week         Int          @unique
+  babyGrowth   BabyGrowth?
+  motherGrowth MotherGrowth?
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  createdBy    String
+  isPublished  Boolean      @default(false)
+
+  @@index([week])
+  @@index([isPublished])
+  @@map("weekly_contents")
+}
+
+model BabyGrowth {
+  id               String              @id @default(cuid())
+  weeklyContentId  String              @unique @map("weekly_content_id")
+  weeklyContent    WeeklyContent    @relation(fields: [weeklyContentId], references: [id], onDelete: Cascade)
+  size            Size?
+  development     Development?
+  fruitComparison FruitComparison?
+
+  @@index([weeklyContentId])
+  @@map("baby_growths")
+}
+
+model Size {
+  id           String        @id @default(cuid())
+  babyGrowthId String        @unique @map("baby_growth_id")
+  babyGrowth   BabyGrowth @relation(fields: [babyGrowthId], references: [id], onDelete: Cascade)
+  length       Float
+  weight       Float
+
+  @@index([babyGrowthId])
+  @@map("sizes")
+}
+
+model Development {
+    id           String        @id @default(cuid())
+  babyGrowthId String        @unique @map("baby_growth_id")
+  babyGrowth   BabyGrowth @relation(fields: [babyGrowthId], references: [id], onDelete: Cascade)
+  title        String
+  description  String     @db.Text
+  milestones   String[]
+
+  @@index([babyGrowthId])
+  @@map("developments")
+}
+
+model FruitComparison {
+  id           String        @id @default(cuid())
+  babyGrowthId String        @unique @map("baby_growth_id")
+  babyGrowth   BabyGrowth @relation(fields: [babyGrowthId], references: [id], onDelete: Cascade)
+  name         String
+  size         String
+  imageUrl     String?
+
+  @@index([babyGrowthId])
+  @@map("fruit_comparisons")
+}
+
+model MotherGrowth {
+  id              String              @id @default(cuid())
+  weeklyContentId String              @unique @map("weekly_content_id")
+  weeklyContent   WeeklyContent    @relation(fields: [weeklyContentId], references: [id], onDelete: Cascade)
+  expectedChanges ExpectedChanges?
+  weightGain      WeightGain?
+  nutrition       Nutrition?
+
+  @@index([weeklyContentId])
+  @@map("mother_growths")
+}
+
+model ExpectedChanges {
+  id              String          @id @default(cuid())
+  motherGrowthId  String          @unique @map("mother_growth_id")
+  motherGrowth    MotherGrowth @relation(fields: [motherGrowthId], references: [id], onDelete: Cascade)
+  title           String
+  description     String       @db.Text
+  symptoms        String[]
+  recommendations String[]
+
+  @@index([motherGrowthId])
+  @@map("expected_changes")
+}
+
+model WeightGain {
+  id             String          @id @default(cuid())
+  motherGrowthId String          @unique @map("mother_growth_id")
+  motherGrowth   MotherGrowth @relation(fields: [motherGrowthId], references: [id], onDelete: Cascade)
+  min            Float
+  max            Float
+
+  @@index([motherGrowthId])
+  @@map("weight_gains")
+}
+
+model Nutrition {
+  id             String          @id @default(cuid())
+  motherGrowthId String          @unique @map("mother_growth_id")
+  motherGrowth   MotherGrowth @relation(fields: [motherGrowthId], references: [id], onDelete: Cascade)
+  requirements   String[]
+  foods          String[]
+  supplements    String[]
+
+  @@index([motherGrowthId])
+  @@map("nutritions")
+}
+model CycleInsights {
+  id                    String       @id @default(cuid())
+  currentDay            Int
+  phase                 String    // Enum can be handled in application logic
+  predictedNextPeriod   DateTime
+  dailyRecommendations  String[]
+  
+  moodPatterns          MoodPattern[]
+  energyLevels          EnergyLevel[]
+  cycleMetrics          CycleMetrics?
+
+  @@map("cycle_insights")
+}
+
+model MoodPattern {
+  id              String           @id @default(cuid())
+  cycleInsightsId String           @map("cycle_insights_id")
+  date            DateTime
+  mood            String
+  intensity       Int
+  cycleInsights   CycleInsights    @relation(fields: [cycleInsightsId], references: [id], onDelete: Cascade)
+
+  @@index([cycleInsightsId])
+  @@map("mood_patterns") 
+}
+
+model EnergyLevel {
+  id              String           @id @default(cuid())
+  cycleInsightsId String           @map("cycle_insights_id")
+  date            DateTime
+  level           Int
+  cycleInsights   CycleInsights    @relation(fields: [cycleInsightsId], references: [id], onDelete: Cascade)
+
+  @@index([cycleInsightsId])
+  @@map("energy_levels")
+}
+
+model CycleMetrics {
+  id                  String               @id @default(cuid())
+  cycleInsightsId     String              @unique @map("cycle_insights_id")
+  averageCycle        Float
+  regularity          String
+  significantChanges  SignificantChange[]
+  cycleInsights       CycleInsights       @relation(fields: [cycleInsightsId], references: [id], onDelete: Cascade)
+
+  @@index([cycleInsightsId])
+  @@map("cycle_metrics")
+}
+
+model SignificantChange {
+  id              String           @id @default(cuid())
+  cycleMetricsId  String           @map("cycle_metrics_id")
+  type            String
+  description     String
+  date            DateTime
+  cycleMetrics    CycleMetrics     @relation(fields: [cycleMetricsId], references: [id], onDelete: Cascade)
+
+  @@index([cycleMetricsId])
+  @@map("significant_changes")
+}
