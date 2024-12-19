@@ -11,9 +11,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api', router);
-app.get("/", (req, res) => {
-    return res.send("We are running well now...");
-  });
+
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
