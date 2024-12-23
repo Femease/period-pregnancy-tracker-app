@@ -4,8 +4,8 @@
   "description": "Backend for FemEase women wellness application",
   "main": "dist/server.js",
   "scripts": {
-    "start": "node --max-old-space-size=32768 dist/index.js",
-    "dev": "ts-node-dev --max-old-space-size=32768 --respawn src/index.ts",
+    "start": "nodedist/index.js",
+    "dev": "node   src/index.ts",
     "build": "tsc",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
