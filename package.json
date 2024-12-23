@@ -4,7 +4,7 @@
   "description": "Backend for FemEase women wellness application",
   "main": "dist/server.js",
   "scripts": {
-
+    "postinstall": "prisma generate",
     "dev": "NODE_OPTIONS='--max-old-space-size=512' ts-node src/index.ts",
     "start": "node --max-old-space-size=512 dist/index.js",
     "build": "prisma generate && tsc",
