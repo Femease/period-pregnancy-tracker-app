@@ -3,19 +3,19 @@
   "version": "1.0.0",
   "description": "Backend for FemEase women wellness application",
   "main": "dist/server.js",
+
   "scripts": {
-    "postinstall": "prisma generate",
-    "dev": "NODE_OPTIONS='--max-old-space-size=512' ts-node src/index.ts",
-    "start": "node --max-old-space-size=512 dist/index.js",
-    "build": "prisma generate && tsc",
+
+ "dev": "NODE_OPTIONS='--max-old-space-size=512' ts-node src/index.ts",
+  "build": "npm run prisma:generate && tsc",
+  "prisma:merge": "node prisma/mergePrismaSchema.ts",
+  "prisma:generate": "npm run prisma:merge && prisma generate --schema ./prisma/generated/schema.prisma",
+  "prisma:migrate": "npm run prisma:merge && prisma migrate dev --schema ./prisma/generated/schema.prisma",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
     "seed": "ts-node src/scripts/seed.ts",
-    "train": "ts-node src/scripts/trainModel.ts",
-    "prisma:merge": "node prisma/mergePrismaSchema.ts",
-    "prisma:generate": "npm run prisma:merge && prisma generate --schema ./prisma/generated/schema.prisma",
-    "prisma:migrate": "npm run prisma:merge && prisma migrate dev --schema ./prisma/generated/schema.prisma"
+    "train": "ts-node src/scripts/trainModel.ts"
   },
   "prisma": {
     "import": {
