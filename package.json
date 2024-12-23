@@ -7,7 +7,7 @@
     "postinstall": "prisma generate --schema ./prisma/generated/schema.prisma",
     "dev": "npm run prisma:generate && cross-env  NODE_OPTIONS='--max-old-space-size=512' ts-node src/index.ts",
     "start": "npm run prisma:generate && cross-env  node --max-old-space-size=512 dist/index.js",
-    "build": "npm run prisma:generate && tsc",
+    "build": "npm run prisma:generate && npm run prisma:migrate && tsc",
     "test": "jest",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
