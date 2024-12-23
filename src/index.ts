@@ -1,7 +1,10 @@
 import express, { Express } from 'express';
 import { Logger } from './utils/logger'; // Assuming Logger is a singleton class or a utility class.
 import TrackerModule from './app'; // Assuming this is the Express app instance.
+import app from './app';
 import router from './routes';
+import cors from 'cors';
+
 
 export class Server {
   private trackerModule: Express;
@@ -38,6 +41,10 @@ export const trackerModule = express();
 trackerModule.get("/", (req, res) => {
   return res.send("We are running well now...");
 });
+
+
+trackerModule.use(cors());
+trackerModule.use(express.json());  
 
 trackerModule.use('/api', router);
 

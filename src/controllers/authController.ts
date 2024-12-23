@@ -31,6 +31,7 @@ export class AuthController {
       res.status(201).json({ success: true, message: 'User registered successfully' });
     } catch (error) {
       logger.error('Registration failed:', error);
+      console.log(error)
       res.status(400).json({ success: false, error: 'Registration failed' });
     }
   };
