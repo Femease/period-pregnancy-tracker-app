@@ -39,8 +39,10 @@ export class TensorFlowPredictor {
     stress?: number;
     temperature?: number;
   }): Promise<{
-    nextPeriodDate: Date;
-    cycleDuration: number;
+    nextPeriodDates: { start: Date; end: Date }[];
+    cycleDurations: number[];
+    ovulationWindows: { start: Date; end: Date }[];
+    fertileWindows: { start: Date; end: Date }[];
     confidence: number;
     predictedSymptoms: string[];
   }> {
@@ -48,26 +50,91 @@ export class TensorFlowPredictor {
       const input = this.prepareInput(data);
       const prediction = this.model.predict(input) as tf.Tensor;
       const [nextPeriodDays, cycleDuration, symptomLikelihood] = await prediction.data();
-
-      const lastPeriod = [...data.periods].sort((a, b) => 
+  
+      const lastPeriod = [...data.periods].sort((a, b) =>
         b.startDate.getTime() - a.startDate.getTime()
       )[0];
-
-      const nextPeriodDate = new Date(lastPeriod?.startDate || new Date());
-      nextPeriodDate.setDate(nextPeriodDate.getDate() + Math.round(nextPeriodDays));
-      console.log('nextPeriodDate', nextPeriodDate);
+  
+      // Ensure there was at least one period to calculate from
+      if (!lastPeriod) {
+        throw new Error('No period data available');
+      }
+  
+      // Calculate the average cycle length if multiple periods are available
+      const cycleDurations: number[] = [];
+      let totalCycleLength = 0;
+      for (let i = 1; i < data.periods.length; i++) {
+        const prevPeriod = data.periods[i - 1];
+        const currentPeriod = data.periods[i];
+        const cycleLength = (currentPeriod.startDate.getTime() - prevPeriod.startDate.getTime()) / (1000 * 3600 * 24);
+        cycleDurations.push(cycleLength);
+        totalCycleLength += cycleLength;
+      }
+  
+      const avgCycleDuration = totalCycleLength / cycleDurations.length || 28; // Default to 28 days if no data
+  
+      // Calculate next period date and ovulation/fertile windows based on the average cycle length
+      const nextPeriodDates: { start: Date; end: Date }[] = [];
+      const ovulationWindows: { start: Date; end: Date }[] = [];
+      const fertileWindows: { start: Date; end: Date }[] = [];
+      
+      let currentStartDate = new Date(lastPeriod.startDate);
+      
+      // Predict for the next 4 periods
+      for (let i = 0; i < 4; i++) {
+        // Predict the next period start date based on the average cycle length
+        currentStartDate.setDate(currentStartDate.getDate() + Math.round(avgCycleDuration));
+        const nextPeriodStartDate = new Date(currentStartDate);
+        
+        // Calculate the end date of the period (usually 5-7 days after the start)
+        const nextPeriodEndDate = new Date(nextPeriodStartDate);
+        nextPeriodEndDate.setDate(nextPeriodEndDate.getDate() + 5); // Assuming a 5-day period
+  
+        nextPeriodDates.push({ start: nextPeriodStartDate, end: nextPeriodEndDate });
+  
+        // Ovulation calculation: Ovulation happens around 14 days before the next period
+        const ovulationStartDate = new Date(nextPeriodStartDate);
+        ovulationStartDate.setDate(ovulationStartDate.getDate() - (cycleDuration - 14)); // Ovulation 14 days before period
+        const ovulationEndDate = new Date(ovulationStartDate);
+        ovulationEndDate.setDate(ovulationEndDate.getDate() + 1); // Ovulation lasts 1-2 days
+  
+        ovulationWindows.push({ start: ovulationStartDate, end: ovulationEndDate });
+  
+        // Fertile window calculation: 5 days before ovulation and 1 day after ovulation
+        const fertileWindowStartDate = new Date(ovulationStartDate);
+        fertileWindowStartDate.setDate(fertileWindowStartDate.getDate() - 5);
+        const fertileWindowEndDate = new Date(ovulationStartDate);
+        fertileWindowEndDate.setDate(fertileWindowEndDate.getDate() + 1);
+  
+        fertileWindows.push({ start: fertileWindowStartDate, end: fertileWindowEndDate });
+  
+        // Update currentStartDate for the next period
+        currentStartDate = new Date(nextPeriodStartDate);
+      }
+  
+      // Return the prediction results
       return {
-        nextPeriodDate,
-        cycleDuration: Math.round(cycleDuration),
+        nextPeriodDates,
+        cycleDurations: Array(4).fill(Math.round(avgCycleDuration)), // Using the average cycle duration for predictions
+        ovulationWindows,
+        fertileWindows,
         confidence: this.calculateConfidence(data),
-        predictedSymptoms: this.predictSymptoms(data, symptomLikelihood)
+        predictedSymptoms: this.predictSymptoms(data, symptomLikelihood),
       };
     } catch (error) {
       console.error('Prediction error:', error);
-      return this.getFallbackPrediction(data);
+      return {
+        nextPeriodDates: [],
+        cycleDurations: [],
+        ovulationWindows: [],
+        fertileWindows: [],
+        confidence: 0,
+        predictedSymptoms: [],
+      };
     }
   }
-
+  
+  
   async train(data: {
     periods: Period[];
     symptoms: Symptom[];
@@ -99,29 +166,33 @@ export class TensorFlowPredictor {
     stress?: number;
     temperature?: number;
   }): tf.Tensor2D {
-    const periods = [...data.periods].sort((a, b) => 
+    const periods = [...data.periods].sort((a, b) =>
       b.startDate.getTime() - a.startDate.getTime()
     );
-
-    const lastCycleLength = periods.length >= 2 
+  
+    const lastCycleLength = periods.length >= 2
       ? this.calculateCycleLength(periods[0], periods[1])
       : 28;
-
+  
     const symptomSeverity = this.calculateAverageSymptomSeverity(data.symptoms);
     const daysSinceLastPeriod = this.calculateDaysSinceLastPeriod(periods[0]);
     const seasonalEffect = this.calculateSeasonalEffect(new Date());
-
-    return tf.tensor2d([[
+  
+    // Add the missing feature. You can set it as a constant or derive it from the data
+    const additionalFeature = 0;  // Replace with the actual feature if needed
+  
+    return tf.tensor2d([[  // Add the additional feature here
       lastCycleLength,
       symptomSeverity,
       daysSinceLastPeriod,
       seasonalEffect,
       data.age || 25, // default age
       data.stress || 0.5, // default stress level
-      data.temperature || 36.5 // default temperature
+      data.temperature || 36.5, // default temperature
+      additionalFeature   // Add the additional feature
     ]]);
   }
-
+  
   private prepareTrainingData(data: {
 periods: Period[];
     symptoms: Symptom[];
